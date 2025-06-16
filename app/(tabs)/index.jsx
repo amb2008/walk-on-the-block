@@ -1,41 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, use } from 'react';
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Clock } from 'lucide-react-native';
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAuF6WtTM8bQw0coC6htQnQ3lGhMfjmkgU",
+  authDomain: "walk-on-the-block.firebaseapp.com",
+  projectId: "walk-on-the-block",
+  storageBucket: "walk-on-the-block.firebasestorage.app",
+  messagingSenderId: "656366015014",
+  appId: "1:656366015014:web:19b1b64fdd9e3a95238ce7",
+  measurementId: "G-H5NSBP9ZTE"
+};
+
+
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app); // <-- Get the Firestore service
+
 export default function HomeScreen() {
-  const [userType, setUserType] = useState('student'); // 'student' or 'owner'
+  const [userType, setUserType] = useState('owner'); // 'student' or 'owner'
+  const [nearbyDogs, setNearbyDogs] = useState([]);
+  const [userEmail, setUserEmail] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [userName, setUserName] = useState(null);
+  const [userImage, setUserImage] = useState(null);
+
+  onAuthStateChanged(getAuth(), (user) => {
+    if (user) {
+      console.log("User is signed in:", user.email);
+      setUserEmail(user.email);
+      setUserId(user.uid);
+      setUserName(user.displayName || "User");
+      setUserImage(user.photoURL || "https://via.placeholder.com/150");
+      console.log("User ID:", user.uid);
+      console.log("User Name:", user.displayName);
+      console.log("User Email:", user.email);
+      console.log("User Photo URL:", user.photoURL);
+    } else {
+      console.log("No user is signed in.");
+    }
+  });
+
+  const test = async () => {
+    console.log("Fetching nearby dogs...");
+    const q = query(collection(db, "dogs"));
+    // const q = query(collection(db, "cities"), where("capital", "==", true));
+    let newData = [];
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {    
+      newData.push({...doc.data()});  
+    });
+    setNearbyDogs([...newData]);
+  }
+
+  useEffect(() => { test();}, []);
   
-  // Mock data
-  const nearbyDogs = [
-    {
-      id: '1',
-      name: 'Max',
-      breed: 'Golden Retriever',
-      distance: '0.5 miles',
-      image: 'https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg',
-      time: '3:00 PM - 4:00 PM',
-      rating: 4.8,
-    },
-    {
-      id: '2',
-      name: 'Bella',
-      breed: 'Poodle',
-      distance: '0.7 miles',
-      image: 'https://images.pexels.com/photos/1458916/pexels-photo-1458916.jpeg',
-      time: '5:30 PM - 6:30 PM',
-      rating: 4.7,
-    },
-    {
-      id: '3',
-      name: 'Charlie',
-      breed: 'Beagle',
-      distance: '1.2 miles',
-      image: 'https://images.pexels.com/photos/1254140/pexels-photo-1254140.jpeg',
-      time: '4:00 PM - 5:00 PM',
-      rating: 4.9,
-    },
-  ];
 
   const topWalkers = [
     {

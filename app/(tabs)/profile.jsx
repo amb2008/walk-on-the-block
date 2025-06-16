@@ -1,12 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch } from 'react-native';
-import { CreditCard as Edit2, LogOut, Clock, DollarSign, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight } from 'lucide-react-native';
+import { CreditCard as Edit2, LogOut, Clock, DollarSign, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight, Pencil } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { onAuthStateChanged, getAuth } from "firebase/auth";
+import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAuF6WtTM8bQw0coC6htQnQ3lGhMfjmkgU",
+  authDomain: "walk-on-the-block.firebaseapp.com",
+  projectId: "walk-on-the-block",
+  storageBucket: "walk-on-the-block.firebasestorage.app",
+  messagingSenderId: "656366015014",
+  appId: "1:656366015014:web:19b1b64fdd9e3a95238ce7",
+  measurementId: "G-H5NSBP9ZTE"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app); // <-- Get the Firestore service
+
 export default function ProfileScreen() {
-  const [userType, setUserType] = useState('student'); // 'student' or 'owner'
+  const [userType, setUserType] = useState('walkers'); // 'student' or 'dogs'
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
+  const [nearbyDogs, setNearbyDogs] = useState([]);
+  const [userEmail, setUserEmail] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [userName, setUserName] = useState(null);
+  const [userImage, setUserImage] = useState(null);
+
+  useEffect(() => {
+    onAuthStateChanged(getAuth(), (user) => {
+      if (user) {
+        console.log("User is signed in:", user.email);
+        setUserEmail(user.email);
+        setUserId(user.uid);
+        setUserName(user.displayName || "User");
+        setUserImage(user.photoURL || "https://via.placeholder.com/150");
+        console.log("User ID:", user.uid);
+        console.log("User Name:", user.displayName);
+        console.log("User Email:", user.email);
+        console.log("User Photo URL:", user.photoURL);
+      } else {
+        console.log("No user is signed in.");
+      }
+    });
+  }, []);
+  useEffect(() => {
+    userq = query(collection(db, "walkers"), where("email", "==", userEmail));
+    // find user in walkers collection
+    getDocs(userq).then((querySnapshot) => {
+      if (!querySnapshot.empty) {
+        console.log("User found in walkers collection.");
+        setUserType('walkers'); // User is a walker
+      } else {
+        // If not found in walkers, check dogs collection
+        userq = query(collection(db, "dogs"), where("email", "==", userEmail));
+        getDocs(userq).then((querySnapshot) => {
+          if (!querySnapshot.empty) {
+            console.log("User found in dogs collection.");
+            setUserType('dogs'); // User is an owner
+          }
+        });
+      }
+    }
+    ).catch((error) => {
+      console.error("Error fetching user type:", error);
+    } );
+
+  }, [userEmail]);
+
 
   // Mock data
   const studentData = {
@@ -81,9 +149,14 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        <View style={styles.bioContainer}>
+        <View style={styles.bioContainer}> 
           <Text style={styles.sectionTitle}>About</Text>
-          <Text style={styles.bioText}>{userData.bio}</Text>
+          <ScrollView>
+            <Text style={styles.bioText}>{userData.bio}</Text>
+            <TouchableOpacity style={styles.settingItem}><Pencil size={16} color="red" style={{ marginTop: 10 }}/></TouchableOpacity>
+          </ScrollView>
+            {/* <Text style={styles.bioText}>{userData.bio}</Text>/ */}
+        
         </View>
 
         {userType === 'owner' && (
