@@ -1,149 +1,46 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, TextInput } from 'react-native';
 import { CreditCard as Edit2, LogOut, Clock, DollarSign, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight, Pencil, Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { db } from '../../firebase'; // Adjust the import path as necessary
+import { db, signOutUser } from '../../firebase'; // Adjust the import path as necessary
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { onAuthStateChanged, getAuth } from "firebase/auth";
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
+import useUserData from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/hooks/useUserData.js';
 
 export default function ProfileScreen() {
-  useFocusEffect(
-  useCallback(() => {
-    console.log("Tab screen is focused");
-
-    // Put your logic here: API call, Firebase fetch, etc.
-
-    return () => {
-      console.log("Tab screen is unfocused (cleanup)");
-    };
-  }, [])
-  );
-
-  const [userType, setUserType] = useState(null); // 'student' or 'dogs'
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
-  const [userEmail, setUserEmail] = useState(null);
-  const [userName, setUserName] = useState(null);
-  const [userImage, setUserImage] = useState(null);
-  const [userRating, setUserRating] = useState(0);
-  const [userWalks, setUserWalks] = useState(0);
-  const [userEarned, setUserEarned] = useState(0);
-  const [userData, setUserData] = useState(null);
   const [editBio, setEditBio] = useState(false);
   const [bio, setBio] = useState("");
   const [editAddress, setEditAddress] = useState(false);
-  const [address, setAddress] = useState({
-    street: '',
-    apt: '',
-    city: '',
-    state: '',
-    zip: '',
-  });
+  const [editName, setEditName] = useState(false);
 
-  useFocusEffect(
-  useCallback(() => {
-    onAuthStateChanged(getAuth(), (user) => {
-      if (user) {
-        setUserEmail(user.email);
-        console.log("User is signed in:", user.email);
-      } else {
-        console.log("No user is signed in.");
-        setUserEmail(null);
-      }
-    });
-  }, [])
-  );
-
-  useEffect(() => {
-    let userq = query(collection(db, "walkers"), where("email", "==", userEmail));
-    // find user in walkers collection
-    getDocs(userq).then((querySnapshot) => {
-      if (!querySnapshot.empty) {
-        console.log("User found in walkers collection.");
-        setUserType('walkers'); // User is a walker
-      } else {
-        // If not found in walkers, check dogs collection
-        userq = query(collection(db, "dogs"), where("email", "==", userEmail));
-        getDocs(userq).then((querySnapshot) => {
-          if (!querySnapshot.empty) {
-            console.log("User found in dogs collection.");
-            setUserType('dogs'); // User is an owner
-          }
-        });
-      }
-    }
-    ).catch((error) => {
-      console.error("Error fetching user type:", error);
-    } );
-  }, [userEmail]);
-
-  useEffect(() => {
-    // Fetch the user
-    const fetchUser = async () => {
-      if (userEmail) {
-        try {
-          const userDoc = await getDoc(doc(db, userType, userEmail));
-          console.log(userType, userEmail);
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUserName(userData.name || "User");
-            setUserImage(userData.image || "https://via.placeholder.com/150");
-            setAddress(userData.address || {
-              street: '',
-              apt: '',
-              city: '',
-              state: '',
-              zip: '',
-            });
-            setBio(userData.bio || "Please write your bio!");
-            setUserRating(userData.rating || 0);
-            setUserWalks(userData.walks || 0);
-            setUserEarned(userData.earned || 0);
-            console.log("User data fetched:", userData);
-
-            setUserData({
-              name: userName,
-              bio: bio,
-              photo: userImage,
-              stats: [
-                { icon: <Clock size={18} color="#4A80F0" />, value: userWalks, label: 'Walks' },
-                { icon: <DollarSign size={18} color="#4A80F0" />, value: userEarned, label: 'Earned' },
-                { icon: <Star size={18} color="#4A80F0" />, value: userRating, label: 'Rating' },
-              ],
-            });
-            setUserData(userData);
-
-          } else {
-            console.log("No such document!");
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      }
-    }
-    fetchUser();
-  }, [userType]);
+  const { 
+    userData,
+    userEmail,
+    userType,
+    userName,
+    userImage,
+    userRating,
+    userWalks,
+    userEarned,
+    address,
+    setAddress,
+    setUserData,
+    setUserName
+  } = useUserData();
 
   async function handleBioBlur(){
-    setUserData((prevData) => ({
-      ...prevData,
-      bio: bio,
-    }));
     setEditBio(false);
-    // Update the user data in Firestore
     const userRef = doc(db, userType, userEmail);
     await setDoc(userRef, { bio: bio }, { merge: true })
-    .then(() => {
-      console.log("User bio updated successfully.");
-    })
-    .catch((error) => {
-      console.error("Error updating user bio:", error);
-    });
+    .then(() => { console.log("User bio updated successfully."); })
+    .catch((error) => { console.error("Error updating user bio:", error); });
   };
 
   async function handleAddressBlur() {
@@ -152,6 +49,13 @@ export default function ProfileScreen() {
     await setDoc(userRef, { address: address }, { merge: true })
       .then(() => console.log("User address updated successfully."))
       .catch((error) => console.error("Error updating address:", error));
+  }
+
+  async function handleNameBlur() {
+    const userRef = doc(db, userType, userEmail);
+    await setDoc(userRef, { name: userName }, { merge: true })
+      .then(() => console.log("User name updated successfully."))
+      .catch((error) => console.error("Error updating user name:", error));
   }
 
   // const ownerData = {
@@ -191,19 +95,25 @@ export default function ProfileScreen() {
               <Edit2 size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileName}>{userData.name}</Text>
-          {userType === 'walkers' ? (
-            <Text style={styles.profileSchool}>{userData.school}</Text>
-          ) : (
-            <View style={styles.locationContainer}>
-              <MapPin size={14} color="#FFFFFF" />
-              <Text style={styles.locationText}>{userData.location}</Text>
-            </View>
-          )}
+
+          {editName ?
+          <TextInput
+            style={styles.profileName}
+            value={userName}
+            onChangeText={(text) => setUserName(text)}
+            onBlur={handleNameBlur}
+            placeholder="Enter your name"
+            placeholderTextColor="#FFFFFF"
+            autoFocus></TextInput>
+          :
+          <Text style={styles.profileName} onPress={()=>setEditName(!editName)}>{userData.name || 'User'}</Text>
+          }
+          <Text style={styles.profileSchool}>{userType}</Text>
         </View>
         }
       </LinearGradient>
 
+    {userData && (
       <ScrollView style={styles.content}>
         {/* {userData && (
         <View style={styles.statsContainer}>
@@ -217,7 +127,6 @@ export default function ProfileScreen() {
         </View>
         )} */}
 
-        {userData && (
         <View style={styles.settingsContainer}> 
           <View style={styles.settingItem}>
           <Text style={styles.sectionTitle}>About</Text>
@@ -247,7 +156,11 @@ export default function ProfileScreen() {
             <View style={styles.settingItem}>
               <Text style={styles.sectionTitle}>Address</Text>
               <View style={styles.settingItemLeft}>
-                <TouchableOpacity style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]} onPress={() => setEditAddress(!editAddress)}>
+                <TouchableOpacity style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]} onPress={() => 
+                  {if (editAddress){
+                    handleAddressBlur();
+                  }
+                  setEditAddress(!editAddress)}}>
                   {editAddress ? <Check size={18} color="#4A80F0" /> : <Pencil size={18} color="#4A80F0" />}
                 </TouchableOpacity>
               </View>
@@ -261,19 +174,19 @@ export default function ProfileScreen() {
                         value={address[field]}
                         onChangeText={(text) => setAddress((prev) => ({ ...prev, [field]: text }))}
                         placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-                        onBlur={handleAddressBlur}
                         placeholderTextColor="#8A8A8A"
                       />
                     ))}
                   </View>
                   ) : (
                     <Text style={styles.settingText} onPress={() => setEditAddress(true)}>
-                      {address.street.length>1 ? `${address.street || ''}, ${address.apt.length > 0 ? address.apt + ', ' : ''}${address.city || ''}, ${address.state || ''}, ${address.zip || ''}`.trim() : "Add your address"}
+                        {address?.street?.length > 1
+                    ? `${address?.street || ''}, ${address?.apt?.length > 0 ? address?.apt + ', ' : ''}${address?.city || ''}, ${address?.state || ''}, ${address?.zip || ''}`.trim()
+                    : 'Add your address'}   
                     </Text>
                   )}
           </View>
         </View>
-        )}
 
         {userType === 'owner' && userData && (
           <View style={styles.dogsContainer}>
@@ -349,22 +262,13 @@ export default function ProfileScreen() {
             <ChevronRight size={18} color="#8A8A8A" />
           </TouchableOpacity>
         </View>
-        
-        {/* Toggle button for demo purposes */}
-        <TouchableOpacity 
-          style={styles.toggleButton} 
-          onPress={() => setUserType(userType === 'walkers' ? 'dogs' : 'walkers')}
-        >
-          <Text style={styles.toggleButtonText}>
-            Switch to {userType === 'walkers' ? 'dogs' : 'walkers'} View
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.logoutButton}>
+      
+        <TouchableOpacity style={styles.logoutButton} onPress={()=>signOutUser()}>
           <LogOut size={18} color="#FF5252" />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
+      )}
     </View>
   );
 }
@@ -417,6 +321,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 5,
+    textAlign: 'center',
   },
   profileSchool: {
     fontSize: 14,

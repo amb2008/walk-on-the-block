@@ -4,36 +4,30 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Clock } from 'lucide-react-native';
 import { db } from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/firebase.js'; // Adjust the import path as necessary
+import useUserData from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/hooks/useUserData.js';
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
 
 export default function HomeScreen() {
-  const [userType, setUserType] = useState('owner'); // 'student' or 'owner'
   const [nearbyDogs, setNearbyDogs] = useState([]);
-  const [userEmail, setUserEmail] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const [userName, setUserName] = useState(null);
-  const [userImage, setUserImage] = useState(null);
 
-  onAuthStateChanged(getAuth(), (user) => {
-    if (user) {
-      console.log("User is signed in:", user.email);
-      setUserEmail(user.email);
-      setUserId(user.uid);
-      setUserName(user.displayName || "User");
-      setUserImage(user.photoURL || "https://via.placeholder.com/150");
-      console.log("User ID:", user.uid);
-      console.log("User Name:", user.displayName);
-      console.log("User Email:", user.email);
-      console.log("User Photo URL:", user.photoURL);
-    } else {
-      console.log("No user is signed in.");
-    }
-  });
+  const { 
+      userData,
+      userEmail,
+      userType,
+      userName,
+      userImage,
+      userRating,
+      userWalks,
+      userEarned,
+      address,
+      setAddress,
+      setUserData
+    } = useUserData();
 
-  const test = async () => {
+  const getDogs = async () => {
     console.log("Fetching nearby dogs...");
     const q = query(collection(db, "dogs"));
     // const q = query(collection(db, "cities"), where("capital", "==", true));
@@ -45,24 +39,24 @@ export default function HomeScreen() {
     setNearbyDogs([...newData]);
   }
 
-  useEffect(() => { test();}, []);
+  useEffect(() => { getDogs();}, []);
   
 
   const topWalkers = [
-    {
-      id: '1',
-      name: 'Emma Thompson',
-      rating: 4.9,
-      walks: 42,
-      image: 'https://images.pexels.com/photos/762020/pexels-photo-762020.jpeg',
-    },
-    {
-      id: '2',
-      name: 'Michael Wilson',
-      rating: 4.8,
-      walks: 36,
-      image: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg',
-    },
+    // {
+    //   id: '1',
+    //   name: 'Emma Thompson',
+    //   rating: 4.9,
+    //   walks: 42,
+    //   image: 'https://images.pexels.com/photos/762020/pexels-photo-762020.jpeg',
+    // },
+    // {
+    //   id: '2',
+    //   name: 'Michael Wilson',
+    //   rating: 4.8,
+    //   walks: 36,
+    //   image: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg',
+    // },
   ];
 
   return (
@@ -73,8 +67,8 @@ export default function HomeScreen() {
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <Text style={styles.greeting}>Good Afternoon,</Text>
-        <Text style={styles.username}>{userType === 'student' ? 'Alex' : 'Sarah'}</Text>
+        <Text style={styles.greeting}>Welcome back,</Text>
+        <Text style={styles.username}>{userType === 'student' ? 'Alex' : 'Sarah'}!</Text>
         
         <View style={styles.statsContainer}>
           {userType === 'student' ? (
@@ -193,16 +187,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </>
         )}
-        
-        {/* Toggle button for demo purposes */}
-        <TouchableOpacity 
-          style={styles.toggleButton} 
-          onPress={() => setUserType(userType === 'student' ? 'owner' : 'student')}
-        >
-          <Text style={styles.toggleButtonText}>
-            Switch to {userType === 'student' ? 'Owner' : 'Student'} View
-          </Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );

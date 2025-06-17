@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signOut } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -38,6 +38,15 @@ const app = initializeApp(firebaseConfig);
 export const analytics = app.name && typeof window !== 'undefined' ? getAnalytics(app): console.log("no window");
 // const analytics = getAnalytics(app);
 export const firebaseAuth = getAuth(app);
+
+export const signOutUser = async () => {
+  try {
+    await signOut(firebaseAuth);
+    console.log("User signed out successfully");
+  } catch (error) {
+    console.error("Error signing out:", error);
+  }
+}
 // export const db = getFirestore(app);
 export const db = getFirestore(app);
 
