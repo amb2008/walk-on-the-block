@@ -1,30 +1,15 @@
 import React, { useState, useEffect, use } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch } from 'react-native';
-import { CreditCard as Edit2, LogOut, Clock, DollarSign, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight, Pencil } from 'lucide-react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, TextInput } from 'react-native';
+import { CreditCard as Edit2, LogOut, Clock, DollarSign, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight, Pencil, Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import { db } from '../../firebase'; // Adjust the import path as necessary
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { onAuthStateChanged, getAuth } from "firebase/auth";
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAuF6WtTM8bQw0coC6htQnQ3lGhMfjmkgU",
-  authDomain: "walk-on-the-block.firebaseapp.com",
-  projectId: "walk-on-the-block",
-  storageBucket: "walk-on-the-block.firebasestorage.app",
-  messagingSenderId: "656366015014",
-  appId: "1:656366015014:web:19b1b64fdd9e3a95238ce7",
-  measurementId: "G-H5NSBP9ZTE"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app); // <-- Get the Firestore service
 
 export default function ProfileScreen() {
   useFocusEffect(
@@ -51,6 +36,8 @@ export default function ProfileScreen() {
   const [userWalks, setUserWalks] = useState(0);
   const [userEarned, setUserEarned] = useState(0);
   const [userData, setUserData] = useState(null);
+  const [editBio, setEditBio] = useState(false);
+  const [bio, setBio] = useState("");
 
   useFocusEffect(
   useCallback(() => {
@@ -130,6 +117,24 @@ export default function ProfileScreen() {
     fetchUser();
   }, [userType]);
 
+  async function handleBioBlur(){
+    console.log(bio);
+    setUserData((prevData) => ({
+      ...prevData,
+      bio: bio,
+    }));
+    setEditBio(false);
+    // Update the user data in Firestore
+    const userRef = doc(db, userType, userEmail);
+    await setDoc(userRef, { bio: bio }, { merge: true })
+    .then(() => {
+      console.log("User bio updated successfully.");
+    })
+    .catch((error) => {
+      console.error("Error updating user bio:", error);
+    });
+  };
+
   // const ownerData = {
   //   name: 'Sarah Williams',
   //   bio: 'Owner of Max, a friendly Golden Retriever who loves long walks and playing fetch.',
@@ -194,13 +199,31 @@ export default function ProfileScreen() {
         )} */}
 
         {userData && (
-        <View style={styles.bioContainer}> 
+        <View style={styles.settingsContainer}> 
           <Text style={styles.sectionTitle}>About</Text>
-          <ScrollView style={styles.content}>
-            <Text style={styles.bioText}>{userData.bio}</Text>
-            <TouchableOpacity><Pencil size={14} color="blue" style={{ marginTop: 10 }}/></TouchableOpacity>
-          </ScrollView>
-        
+          <View style={styles.settingItem}>
+            <View style={styles.settingItemLeft}>
+              <TouchableOpacity style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]} onPress={() => editBio ? setEditBio(false) : setEditBio(true)}>
+                {editBio ? <Check size={18} color="#4A80F0" /> : <Pencil size={18} color="#4A80F0" />}
+              </TouchableOpacity>
+              {editBio ? (
+              <TextInput
+                style={styles.settingText}
+                value={bio}
+                onChangeText={(text) => setBio(text)}
+                onBlur={handleBioBlur}
+                placeholder="Edit your bio"
+                placeholderTextColor="#8A8A8A"
+                autoFocus
+                multiline
+              />
+              ) : (
+              <Text style={styles.settingText} onPress={()=>{setEditBio(true)}}>{userData.bio || "Write your bio!"}</Text>
+              )}
+            {/* </View> */}
+              {/* // <Text style={styles.settingText}>{userData.bio || "hi"}</Text> */}
+            </View>
+          </View>        
         </View>
         )}
 
@@ -536,5 +559,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
     marginLeft: 8,
+  },
+  TextInput: {
+    height: 40,
+    borderColor: '#CCCCCC',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    fontSize: 14,
+    color: '#333333',
+    marginTop: 10,
   },
 });

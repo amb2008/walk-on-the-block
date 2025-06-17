@@ -3,29 +3,11 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Clock } from 'lucide-react-native';
+import { db } from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/firebase.js'; // Adjust the import path as necessary
 
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAuF6WtTM8bQw0coC6htQnQ3lGhMfjmkgU",
-  authDomain: "walk-on-the-block.firebaseapp.com",
-  projectId: "walk-on-the-block",
-  storageBucket: "walk-on-the-block.firebasestorage.app",
-  messagingSenderId: "656366015014",
-  appId: "1:656366015014:web:19b1b64fdd9e3a95238ce7",
-  measurementId: "G-H5NSBP9ZTE"
-};
-
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-// const app = initializeApp(firebaseConfig);
-const db = getFirestore(app); // <-- Get the Firestore service
 
 export default function HomeScreen() {
   const [userType, setUserType] = useState('owner'); // 'student' or 'owner'

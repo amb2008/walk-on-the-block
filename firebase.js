@@ -6,24 +6,29 @@ import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+import { Constants } from "expo-constants";
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+  FIREBASE_MEASUREMENT_ID,
+} from '@env';
+
+
+
+console.log("Firebase Project ID:", FIREBASE_PROJECT_ID);
+
 const firebaseConfig = {
-//   apiKey: process.env.NEXT_PUBLIC_APIKEY,
-//   authDomain: process.env.NEXT_PUBLIC_AUTHDOMAIN,
-//   databaseURL: process.env.NEXT_PUBLIC_DATABASEURL,
-//   projectId: process.env.NEXT_PUBLIC_PROJECTID,
-//   storageBucket: process.env.NEXT_PUBLIC_STORAGEBUCKET,
-//   messagingSenderId: process.env.NEXT_PUBLIC_MESSAGINGSENDERID,
-//   appId: process.env.NEXT_PUBLIC_APPID,
-//   measurementId: process.env.NEXT_PUBLIC_MEASUREMENTID,
-  apiKey: "AIzaSyAuF6WtTM8bQw0coC6htQnQ3lGhMfjmkgU",
-  authDomain: "walk-on-the-block.firebaseapp.com",
-  projectId: "walk-on-the-block",
-  storageBucket: "walk-on-the-block.firebasestorage.app",
-  messagingSenderId: "656366015014",
-  appId: "1:656366015014:web:19b1b64fdd9e3a95238ce7",
-  measurementId: "G-H5NSBP9ZTE"
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+  measurementId: FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
