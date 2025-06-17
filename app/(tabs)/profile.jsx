@@ -29,15 +29,21 @@ export default function ProfileScreen() {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [userEmail, setUserEmail] = useState(null);
   const [userName, setUserName] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
   const [userImage, setUserImage] = useState(null);
-  const [userBio, setUserBio] = useState(null);
   const [userRating, setUserRating] = useState(0);
   const [userWalks, setUserWalks] = useState(0);
   const [userEarned, setUserEarned] = useState(0);
   const [userData, setUserData] = useState(null);
   const [editBio, setEditBio] = useState(false);
   const [bio, setBio] = useState("");
+  const [editAddress, setEditAddress] = useState(false);
+  const [address, setAddress] = useState({
+    street: '',
+    apt: '',
+    city: '',
+    state: '',
+    zip: '',
+  });
 
   useFocusEffect(
   useCallback(() => {
@@ -87,8 +93,14 @@ export default function ProfileScreen() {
             const userData = userDoc.data();
             setUserName(userData.name || "User");
             setUserImage(userData.image || "https://via.placeholder.com/150");
-            setUserLocation(userData.location || "Unknown Location");
-            setUserBio(userData.bio || "No bio available.");
+            setAddress(userData.address || {
+              street: '',
+              apt: '',
+              city: '',
+              state: '',
+              zip: '',
+            });
+            setBio(userData.bio || "No bio available.");
             setUserRating(userData.rating || 0);
             setUserWalks(userData.walks || 0);
             setUserEarned(userData.earned || 0);
@@ -96,7 +108,7 @@ export default function ProfileScreen() {
 
             setUserData({
               name: userName,
-              bio: userBio,
+              bio: bio,
               photo: userImage,
               stats: [
                 { icon: <Clock size={18} color="#4A80F0" />, value: userWalks, label: 'Walks' },
@@ -118,7 +130,6 @@ export default function ProfileScreen() {
   }, [userType]);
 
   async function handleBioBlur(){
-    console.log(bio);
     setUserData((prevData) => ({
       ...prevData,
       bio: bio,
@@ -134,6 +145,14 @@ export default function ProfileScreen() {
       console.error("Error updating user bio:", error);
     });
   };
+
+  async function handleAddressBlur() {
+    setEditAddress(false);
+    const userRef = doc(db, userType, userEmail);
+    await setDoc(userRef, { address: address }, { merge: true })
+      .then(() => console.log("User address updated successfully."))
+      .catch((error) => console.error("Error updating address:", error));
+  }
 
   // const ownerData = {
   //   name: 'Sarah Williams',
@@ -200,13 +219,15 @@ export default function ProfileScreen() {
 
         {userData && (
         <View style={styles.settingsContainer}> 
-          <Text style={styles.sectionTitle}>About</Text>
           <View style={styles.settingItem}>
+          <Text style={styles.sectionTitle}>About</Text>
             <View style={styles.settingItemLeft}>
-              <TouchableOpacity style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]} onPress={() => editBio ? setEditBio(false) : setEditBio(true)}>
+              <TouchableOpacity style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]} onPress={() => setEditBio(!editBio)}>
                 {editBio ? <Check size={18} color="#4A80F0" /> : <Pencil size={18} color="#4A80F0" />}
               </TouchableOpacity>
-              {editBio ? (
+            </View>
+          </View>
+          {editBio ? (
               <TextInput
                 style={styles.settingText}
                 value={bio}
@@ -220,10 +241,37 @@ export default function ProfileScreen() {
               ) : (
               <Text style={styles.settingText} onPress={()=>{setEditBio(true)}}>{userData.bio || "Write your bio!"}</Text>
               )}
-            {/* </View> */}
-              {/* // <Text style={styles.settingText}>{userData.bio || "hi"}</Text> */}
+
+          {/* Address Section */}
+          <View style={{ marginTop: 20 }}>
+            <View style={styles.settingItem}>
+              <Text style={styles.sectionTitle}>Address</Text>
+              <View style={styles.settingItemLeft}>
+                <TouchableOpacity style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]} onPress={() => setEditAddress(!editAddress)}>
+                  {editAddress ? <Check size={18} color="#4A80F0" /> : <Pencil size={18} color="#4A80F0" />}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>        
+                  {editAddress ? (
+                  <View>
+                    {['street', 'apt', 'city', 'state', 'zip'].map((field) => (
+                      <TextInput
+                        key={field}
+                        style={styles.TextInput}
+                        value={address[field]}
+                        onChangeText={(text) => setAddress((prev) => ({ ...prev, [field]: text }))}
+                        placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                        onBlur={handleAddressBlur}
+                        placeholderTextColor="#8A8A8A"
+                      />
+                    ))}
+                  </View>
+                  ) : (
+                    <Text style={styles.settingText} onPress={() => setEditAddress(true)}>
+                      {address.street.length>1 ? `${address.street || ''}, ${address.apt.length > 0 ? address.apt + ', ' : ''}${address.city || ''}, ${address.state || ''}, ${address.zip || ''}`.trim() : "Add your address"}
+                    </Text>
+                  )}
+          </View>
         </View>
         )}
 
@@ -516,7 +564,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
   settingItemLeft: {
