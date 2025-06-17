@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Clock } from 'lucide-react-native';
 
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -22,10 +22,9 @@ const firebaseConfig = {
   measurementId: "G-H5NSBP9ZTE"
 };
 
-
-
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// const app = initializeApp(firebaseConfig);
 const db = getFirestore(app); // <-- Get the Firestore service
 
 export default function HomeScreen() {

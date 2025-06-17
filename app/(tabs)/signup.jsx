@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { auth, googleProvider } from "../../firebase.js";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import { firebaseAuth, googleProvider } from "../../firebase.js";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -14,9 +15,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 
-import "../../styles/globals.css";
-
-export default function AuthPage() {
+export default function SignupScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [role, setRole] = useState("");
   const [email, setEmail] = useState("");
@@ -30,7 +29,6 @@ export default function AuthPage() {
     const collectionName = role === "walker" ? "walkers" : "dogs";
     const userDoc = doc(db, collectionName, user.email);
     const userSnapshot = await getDoc(userDoc);
-
     if (!userSnapshot.exists()) {
       await setDoc(userDoc, {
         email: user.email,
@@ -49,9 +47,9 @@ export default function AuthPage() {
       }
       let userCredential;
       if (isSignUp) {
-        userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
       } else {
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
       }
       await saveUserToFirestore(userCredential.user, role);
       router.push("/");
@@ -67,7 +65,7 @@ export default function AuthPage() {
         setError("Please select whether you are a walker or an owner.");
         return;
       }
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(firebaseAuth, googleProvider);
       await saveUserToFirestore(result.user, role);
       router.push("/");
     } catch (err) {
@@ -76,73 +74,147 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="auth-container">
-      <h2 className="auth-title">{isSignUp ? "Sign Up" : "Log In"}</h2>
+    <View style={styles.container}>
+      <Text style={styles.title}>{isSignUp ? "Sign Up" : "Log In"}</Text>
 
       {isSignUp && (
-        <div className="auth-role-select">
-          <label className="auth-label">I am a:</label>
-          <div className="auth-role-options">
-            <label className="auth-radio">
-              <input
-                type="radio"
-                name="role"
-                value="walker"
-                checked={role === "walker"}
-                onChange={() => setRole("walker")}
-              />
-              Walker
-            </label>
-            <label className="auth-radio">
-              <input
-                type="radio"
-                name="role"
-                value="owner"
-                checked={role === "owner"}
-                onChange={() => setRole("owner")}
-              />
-              Owner
-            </label>
-          </div>
-        </div>
+        <View style={styles.roleContainer}>
+          <Text style={styles.label}>I am a:</Text>
+          <View style={styles.radioContainer}>
+            <TouchableOpacity style={styles.radioOption} onPress={() => setRole("walker")}>
+              <Text style={role === "walker" ? styles.radioSelected : styles.radioUnselected}>●</Text>
+              <Text style={styles.radioText}>Walker</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.radioOption} onPress={() => setRole("owner")}>
+              <Text style={role === "owner" ? styles.radioSelected : styles.radioUnselected}>●</Text>
+              <Text style={styles.radioText}>Owner</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
-      <div className="auth-inputs">
-        <input
-          className="auth-input"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className="auth-input"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        placeholderTextColor="#888"
+        value={email}
+        onChangeText={setEmail}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        placeholderTextColor="#888"
+        value={password}
+        secureTextEntry
+        onChangeText={setPassword}
+      />
 
-      {error && <p className="auth-error">{error}</p>}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <button className="auth-button primary" onClick={handleEmailAuth}>
-        {isSignUp ? "Create Account" : "Log In"}
-      </button>
+      <TouchableOpacity style={styles.primaryButton} onPress={handleEmailAuth}>
+        <Text style={styles.buttonText}>{isSignUp ? "Create Account" : "Log In"}</Text>
+      </TouchableOpacity>
 
-      <p className="auth-toggle">
-        {isSignUp ? "Already have an account?" : "Don't have an account?"} {" "}
-        <button className="auth-link" onClick={() => { setIsSignUp(!isSignUp); setError(""); }}>
-          {isSignUp ? "Log In" : "Sign Up"}
-        </button>
-      </p>
+      <Text style={styles.toggleText}>
+        {isSignUp ? "Already have an account?" : "Don't have an account?"}
+        <Text onPress={() => { setIsSignUp(!isSignUp); setError(""); }} style={styles.linkText}>
+          {" "}{isSignUp ? "Log In" : "Sign Up"}
+        </Text>
+      </Text>
 
-      <div className="auth-divider">
-        <p className="auth-or">or</p>
-        <button className="auth-button google" onClick={handleGoogleSignIn}>
-          Continue with Google
-        </button>
-      </div>
-    </div>
+      <Text style={styles.or}>or</Text>
+
+      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
+        <Text style={styles.buttonText}>Continue with Google</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 24,
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  roleContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  radioContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  radioOption: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  radioText: {
+    marginLeft: 6,
+    fontSize: 16,
+  },
+  radioSelected: {
+    fontSize: 18,
+    color: "#4A80F0",
+  },
+  radioUnselected: {
+    fontSize: 18,
+    color: "#ccc",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  error: {
+    color: "#FF5252",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  primaryButton: {
+    backgroundColor: "#4A80F0",
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  googleButton: {
+    backgroundColor: "#EA4335",
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  toggleText: {
+    textAlign: "center",
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  linkText: {
+    color: "#4A80F0",
+    fontWeight: "bold",
+  },
+  or: {
+    textAlign: "center",
+    marginVertical: 10,
+    fontSize: 14,
+    color: "#999",
+  },
+});

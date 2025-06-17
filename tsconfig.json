@@ -12,5 +12,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"
-, "app/(tabs)/signup.jsx"  ]
+, "app/(tabs)/signup.jsx", "app/(tabs)/schedule.jsx", "app/(tabs)/profile.jsx", "app/(tabs)/messages.jsx", "app/(tabs)/map.jsx", "app/(tabs)/index.jsx"  ]
 }

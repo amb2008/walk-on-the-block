@@ -2,6 +2,8 @@ import React, { useState, useEffect, use } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch } from 'react-native';
 import { CreditCard as Edit2, LogOut, Clock, DollarSign, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight, Pencil } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
@@ -25,34 +27,47 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app); // <-- Get the Firestore service
 
 export default function ProfileScreen() {
-  const [userType, setUserType] = useState('walkers'); // 'student' or 'dogs'
+  useFocusEffect(
+  useCallback(() => {
+    console.log("Tab screen is focused");
+
+    // Put your logic here: API call, Firebase fetch, etc.
+
+    return () => {
+      console.log("Tab screen is unfocused (cleanup)");
+    };
+  }, [])
+  );
+
+  const [userType, setUserType] = useState(null); // 'student' or 'dogs'
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
-  const [nearbyDogs, setNearbyDogs] = useState([]);
   const [userEmail, setUserEmail] = useState(null);
-  const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
   const [userImage, setUserImage] = useState(null);
+  const [userBio, setUserBio] = useState(null);
+  const [userRating, setUserRating] = useState(0);
+  const [userWalks, setUserWalks] = useState(0);
+  const [userEarned, setUserEarned] = useState(0);
+  const [userData, setUserData] = useState(null);
 
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
     onAuthStateChanged(getAuth(), (user) => {
       if (user) {
-        console.log("User is signed in:", user.email);
         setUserEmail(user.email);
-        setUserId(user.uid);
-        setUserName(user.displayName || "User");
-        setUserImage(user.photoURL || "https://via.placeholder.com/150");
-        console.log("User ID:", user.uid);
-        console.log("User Name:", user.displayName);
-        console.log("User Email:", user.email);
-        console.log("User Photo URL:", user.photoURL);
+        console.log("User is signed in:", user.email);
       } else {
         console.log("No user is signed in.");
+        setUserEmail(null);
       }
     });
-  }, []);
+  }, [])
+  );
+
   useEffect(() => {
-    userq = query(collection(db, "walkers"), where("email", "==", userEmail));
+    let userq = query(collection(db, "walkers"), where("email", "==", userEmail));
     // find user in walkers collection
     getDocs(userq).then((querySnapshot) => {
       if (!querySnapshot.empty) {
@@ -72,44 +87,67 @@ export default function ProfileScreen() {
     ).catch((error) => {
       console.error("Error fetching user type:", error);
     } );
-
   }, [userEmail]);
 
+  useEffect(() => {
+    // Fetch the user
+    const fetchUser = async () => {
+      if (userEmail) {
+        try {
+          const userDoc = await getDoc(doc(db, userType, userEmail));
+          console.log(userType, userEmail);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserName(userData.name || "User");
+            setUserImage(userData.image || "https://via.placeholder.com/150");
+            setUserLocation(userData.location || "Unknown Location");
+            setUserBio(userData.bio || "No bio available.");
+            setUserRating(userData.rating || 0);
+            setUserWalks(userData.walks || 0);
+            setUserEarned(userData.earned || 0);
+            console.log("User data fetched:", userData);
 
-  // Mock data
-  const studentData = {
-    name: 'Alex Johnson',
-    age: 17,
-    school: 'Lincoln High School',
-    bio: 'Animal lover with 2 years of experience taking care of dogs. Available on weekdays after 3 PM and weekends.',
-    photo: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg',
-    stats: [
-      { icon: <Clock size={18} color="#4A80F0" />, value: '28', label: 'Walks' },
-      { icon: <DollarSign size={18} color="#4A80F0" />, value: '$235', label: 'Earned' },
-      { icon: <Star size={18} color="#4A80F0" />, value: '4.9', label: 'Rating' },
-    ],
-  };
+            setUserData({
+              name: userName,
+              bio: userBio,
+              photo: userImage,
+              stats: [
+                { icon: <Clock size={18} color="#4A80F0" />, value: userWalks, label: 'Walks' },
+                { icon: <DollarSign size={18} color="#4A80F0" />, value: userEarned, label: 'Earned' },
+                { icon: <Star size={18} color="#4A80F0" />, value: userRating, label: 'Rating' },
+              ],
+            });
+            setUserData(userData);
 
-  const ownerData = {
-    name: 'Sarah Williams',
-    bio: 'Owner of Max, a friendly Golden Retriever who loves long walks and playing fetch.',
-    photo: 'https://images.pexels.com/photos/762020/pexels-photo-762020.jpeg',
-    location: 'Westfield, LA',
-    dogs: [
-      { 
-        name: 'Max', 
-        breed: 'Golden Retriever', 
-        age: '3 years',
-        photo: 'https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg'
+          } else {
+            console.log("No such document!");
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
       }
-    ],
-    stats: [
-      { icon: <Clock size={18} color="#4A80F0" />, value: '18', label: 'Bookings' },
-      { icon: <Star size={18} color="#4A80F0" />, value: '4.8', label: 'Rating' },
-    ],
-  };
+    }
+    fetchUser();
+  }, [userType]);
 
-  const userData = userType === 'student' ? studentData : ownerData;
+  // const ownerData = {
+  //   name: 'Sarah Williams',
+  //   bio: 'Owner of Max, a friendly Golden Retriever who loves long walks and playing fetch.',
+  //   photo: 'https://images.pexels.com/photos/762020/pexels-photo-762020.jpeg',
+  //   location: 'Westfield, LA',
+  //   dogs: [
+  //     { 
+  //       name: 'Max', 
+  //       breed: 'Golden Retriever', 
+  //       age: '3 years',
+  //       photo: 'https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg'
+  //     }
+  //   ],
+  //   stats: [
+  //     { icon: <Clock size={18} color="#4A80F0" />, value: '18', label: 'Bookings' },
+  //     { icon: <Star size={18} color="#4A80F0" />, value: '4.8', label: 'Rating' },
+  //   ],
+  // };
 
   return (
     <View style={styles.container}>
@@ -119,15 +157,18 @@ export default function ProfileScreen() {
         end={{ x: 1, y: 0 }}
         style={styles.header}
       >
+        {userData &&
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
-            <Image source={{ uri: userData.photo }} style={styles.profileImage} />
+            
+            <Image source={{ uri: userData.image }} style={styles.profileImage} />
+
             <TouchableOpacity style={styles.editButton}>
               <Edit2 size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
           <Text style={styles.profileName}>{userData.name}</Text>
-          {userType === 'student' ? (
+          {userType === 'walkers' ? (
             <Text style={styles.profileSchool}>{userData.school}</Text>
           ) : (
             <View style={styles.locationContainer}>
@@ -136,11 +177,13 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+        }
       </LinearGradient>
 
       <ScrollView style={styles.content}>
+        {/* {userData && (
         <View style={styles.statsContainer}>
-          {userData.stats.map((stat, index) => (
+        {userData.stats.map((stat, index) => (
             <View key={index} style={styles.statItem}>
               {stat.icon}
               <Text style={styles.statValue}>{stat.value}</Text>
@@ -148,18 +191,20 @@ export default function ProfileScreen() {
             </View>
           ))}
         </View>
+        )} */}
 
+        {userData && (
         <View style={styles.bioContainer}> 
           <Text style={styles.sectionTitle}>About</Text>
-          <ScrollView>
+          <ScrollView style={styles.content}>
             <Text style={styles.bioText}>{userData.bio}</Text>
-            <TouchableOpacity style={styles.settingItem}><Pencil size={16} color="red" style={{ marginTop: 10 }}/></TouchableOpacity>
+            <TouchableOpacity><Pencil size={14} color="blue" style={{ marginTop: 10 }}/></TouchableOpacity>
           </ScrollView>
-            {/* <Text style={styles.bioText}>{userData.bio}</Text>/ */}
         
         </View>
+        )}
 
-        {userType === 'owner' && (
+        {userType === 'owner' && userData && (
           <View style={styles.dogsContainer}>
             <Text style={styles.sectionTitle}>My Dogs</Text>
             {userData.dogs.map((dog, index) => (
@@ -237,10 +282,10 @@ export default function ProfileScreen() {
         {/* Toggle button for demo purposes */}
         <TouchableOpacity 
           style={styles.toggleButton} 
-          onPress={() => setUserType(userType === 'student' ? 'owner' : 'student')}
+          onPress={() => setUserType(userType === 'walkers' ? 'dogs' : 'walkers')}
         >
           <Text style={styles.toggleButtonText}>
-            Switch to {userType === 'student' ? 'Owner' : 'Student'} View
+            Switch to {userType === 'walkers' ? 'dogs' : 'walkers'} View
           </Text>
         </TouchableOpacity>
 
