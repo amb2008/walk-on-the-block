@@ -100,7 +100,7 @@ export default function ProfileScreen() {
               state: '',
               zip: '',
             });
-            setBio(userData.bio || "No bio available.");
+            setBio(userData.bio || "Please write your bio!");
             setUserRating(userData.rating || 0);
             setUserWalks(userData.walks || 0);
             setUserEarned(userData.earned || 0);
