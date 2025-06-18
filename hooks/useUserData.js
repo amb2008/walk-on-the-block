@@ -25,6 +25,8 @@ export default function useUserData() {
     state: '',
     zip: '',
   });
+    const [bio, setBio] = useState('Please write your bio!');
+    const [contact, setContact] = useState('Please add your contact info!');
 
   // Detect auth state
   useFocusEffect(
@@ -70,50 +72,58 @@ export default function useUserData() {
     checkUserType();
   }, [userEmail]);
 
+  const fetchUser = async () => {
+    if (!userEmail || !userType) return;
+
+    try {
+    const userDoc = await getDoc(doc(db, userType, userEmail));
+    if (userDoc.exists()) {
+        const data = userDoc.data();
+        const finalUserData = {
+        name: data.name || 'User',
+        image: data.image || 'https://via.placeholder.com/150',
+        bio: data.bio || 'Please write your bio!',
+        email: data.email || userEmail,
+        address: data.address || 'Please add your address',
+        contact: data.contact || 'Please add your contact info',
+        stats: [
+            { icon: <Clock size={18} color="#4A80F0" />, value: data.walks || 0, label: 'Walks' },
+            { icon: <DollarSign size={18} color="#4A80F0" />, value: data.earned || 0, label: 'Earned' },
+            { icon: <Star size={18} color="#4A80F0" />, value: data.rating || 0, label: 'Rating' },
+        ],
+        };
+        setUserData(finalUserData);
+        setUserName(data.name || 'User');
+        setUserImage(data.image || 'https://via.placeholder.com/150');
+        setUserRating(data.rating || 0);
+        setUserWalks(data.walks || 0);
+        setUserEarned(data.earned || 0);
+        setBio(data.bio || 'Please write your bio!');
+        setContact(data.contact || 'Please add your contact info!');
+        setAddress({
+            street: data.address?.street || '',
+            apt: data.address?.apt || '',
+            city: data.address?.city || '',
+            state: data.address?.state || '',
+            zip: data.address?.zip || '',
+        });
+    } else {
+        console.log('No such user document.');
+    }
+    } catch (error) {
+    console.error('Error fetching user data:', error);
+    }
+};
+
   // Fetch full user data
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!userEmail || !userType) return;
-
-      try {
-        const userDoc = await getDoc(doc(db, userType, userEmail));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          const finalUserData = {
-            name: data.name || 'User',
-            image: data.image || 'https://via.placeholder.com/150',
-            bio: data.bio || 'Please write your bio!',
-            email: data.email || userEmail,
-            address: data.address || 'Please add your address',
-            stats: [
-              { icon: <Clock size={18} color="#4A80F0" />, value: data.walks || 0, label: 'Walks' },
-              { icon: <DollarSign size={18} color="#4A80F0" />, value: data.earned || 0, label: 'Earned' },
-              { icon: <Star size={18} color="#4A80F0" />, value: data.rating || 0, label: 'Rating' },
-            ],
-          };
-          setUserData(finalUserData);
-          setUserName(data.name || 'User');
-          setUserImage(data.image || 'https://via.placeholder.com/150');
-          setUserRating(data.rating || 0);
-          setUserWalks(data.walks || 0);
-          setUserEarned(data.earned || 0);
-            setAddress({
-                street: data.address?.street || '',
-                apt: data.address?.apt || '',
-                city: data.address?.city || '',
-                state: data.address?.state || '',
-                zip: data.address?.zip || '',
-            });
-        } else {
-          console.log('No such user document.');
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-
     fetchUser();
   }, [userType, userEmail]);
+
+  const refreshUserData = async () => {
+    if (!userEmail || !userType) return;
+    await fetchUser(userEmail, userType);
+  };
 
   return {
     userData,
@@ -125,9 +135,13 @@ export default function useUserData() {
     userWalks,
     userEarned,
     address,
+    bio,
+    contact,
     setAddress,
     setUserData,
-    setUserName
-  };
+    setUserName,
+    setBio,
+    setContact,
+    refreshUserData
 //   return { userData, setUserData, userEmail, userType, userName, userImage, userRating, userWalks, userEarned, setUserType, setUserEmail, setUserName, setUserImage, setUserRating, setUserWalks, setUserEarned, signOutUser };
-}
+}}

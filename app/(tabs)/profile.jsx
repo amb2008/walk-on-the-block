@@ -16,9 +16,9 @@ export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [editBio, setEditBio] = useState(false);
-  const [bio, setBio] = useState("");
   const [editAddress, setEditAddress] = useState(false);
   const [editName, setEditName] = useState(false);
+  const [editContact, setEditContact] = useState(false);
 
   const { 
     userData,
@@ -30,10 +30,16 @@ export default function ProfileScreen() {
     userWalks,
     userEarned,
     address,
+    bio,
+    contact,
     setAddress,
     setUserData,
-    setUserName
+    setUserName,
+    setBio,
+    setContact,
   } = useUserData();
+
+  console.log("User Data:", userData);
 
   async function handleBioBlur(){
     setEditBio(false);
@@ -56,6 +62,14 @@ export default function ProfileScreen() {
     await setDoc(userRef, { name: userName }, { merge: true })
       .then(() => console.log("User name updated successfully."))
       .catch((error) => console.error("Error updating user name:", error));
+  }
+
+  async function handleContactBlur() {
+    setEditContact(false);
+    const userRef = doc(db, userType, userEmail);
+    await setDoc(userRef, { contact: contact }, { merge: true })
+      .then(() => console.log("User contact updated successfully."))
+      .catch((error) => console.error("Error updating contact:", error));
   }
 
   // const ownerData = {
@@ -148,7 +162,7 @@ export default function ProfileScreen() {
                 multiline
               />
               ) : (
-              <Text style={styles.settingText} onPress={()=>{setEditBio(true)}}>{userData.bio || "Write your bio!"}</Text>
+              <Text style={styles.settingText} onPress={()=>{setEditBio(true)}}>{bio || "Write your bio!"}</Text>
               )}
 
           {/* Address Section */}
@@ -186,6 +200,34 @@ export default function ProfileScreen() {
                     </Text>
                   )}
           </View>
+          {/* Contact Section */}
+          <View style={{ marginTop: 20 }}>
+            <View style={styles.settingItem}>
+              <Text style={styles.sectionTitle}>Contact</Text>
+              <View style={styles.settingItemLeft}>
+                <TouchableOpacity style={[styles.settingIcon, { backgroundColor: '#E3F2FD' }]} onPress={() => 
+                  {if (editContact){
+                    handleContactBlur();
+                  }
+                  setEditContact(!editContact)}}>
+                  {editContact ? <Check size={18} color="#4A80F0" /> : <Pencil size={18} color="#4A80F0" />}
+                </TouchableOpacity>
+              </View>
+            </View>
+            {editContact ? (
+              <TextInput
+                style={styles.TextInput}
+                value={contact}
+                onChangeText={(text) => setContact(text)}
+                onBlur={handleContactBlur}
+                placeholder="Enter your contact info"
+                placeholderTextColor="#8A8A8A"
+                autoFocus
+              />
+            ) : (
+              <Text style={styles.settingText} onPress={()=>{setEditContact(true)}}>{contact || "Add your contact info!"}</Text>
+            )}
+            </View>
         </View>
 
         {userType === 'owner' && userData && (
@@ -222,21 +264,6 @@ export default function ProfileScreen() {
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: '#E0E0E0', true: '#4A80F0' }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingItemLeft}>
-              <View style={[styles.settingIcon, { backgroundColor: '#FFF3E0' }]}>
-                <MapPin size={18} color="#FF9557" />
-              </View>
-              <Text style={styles.settingText}>Location Services</Text>
-            </View>
-            <Switch
-              value={locationEnabled}
-              onValueChange={setLocationEnabled}
               trackColor={{ false: '#E0E0E0', true: '#4A80F0' }}
               thumbColor="#FFFFFF"
             />
