@@ -5,7 +5,7 @@ module.exports = function (api) {
     presets: ["babel-preset-expo"],
     plugins: [
       // Required for Expo Router
-      "expo-router/babel",
+      // "expo-router/babel",
 
       // Loads variables from .env files
       [

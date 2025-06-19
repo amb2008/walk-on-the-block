@@ -1,14 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Clock } from 'lucide-react-native';
 import { db } from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/firebase.js'; // Adjust the import path as necessary
 import useUserData from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/hooks/useUserData.js';
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
+import { calculateDistance } from '../../hooks/distance.js'; // Adjust the import path as necessary
+import animationData from '../../assets/animations/dogAnimation.json'; // Adjust the import path as necessary
+import { useRouter } from "expo-router";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+
 
 export default function HomeScreen() {
+  const animation = useRef(null);
+  const [LottieView, setLottieView] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const router = useRouter();
+
+
   const { 
     userData,
     userEmail,
@@ -21,6 +32,7 @@ export default function HomeScreen() {
     address,
     bio,
     contact,
+    userSignedIn,
     setAddress,
     setUserData,
     setUserName,
@@ -28,6 +40,16 @@ export default function HomeScreen() {
     setContact,
     refreshUserData
   } = useUserData();
+
+  const auth = getAuth();
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      console.log("User is signed in:", user.email);
+    } else {
+      router.push('/signup');
+    }
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -42,7 +64,10 @@ export default function HomeScreen() {
 
 
   const getUsers = async () => {
-    if (!userData) return;
+    if (!userData){
+      console.log(userData);
+      return
+    }
     console.log("User Data:", userData);
     if (userType === 'dogs'){
       const q = query(collection(db, "walkers"), where("address.city", "==", address.city));
@@ -51,7 +76,14 @@ export default function HomeScreen() {
       querySnapshot.forEach((doc) => {
         newData.push({...doc.data()});
       });
-      setWalkers([...newData]);
+      let newDataWithDistance = await Promise.all(newData.map(async (walker) => {
+        const distance = await calculateDistance(`${address.street}, ${address.city}`, `${walker.address.street}, ${walker.address.city}`);
+        let strDistance = distance.toFixed(2).toString();
+        return {...walker, distance: strDistance};
+      }
+      ));
+      newDataWithDistance.sort((a, b) => a.distance - b.distance);
+      setWalkers([...newDataWithDistance]);
     } 
     else if (userType === 'walkers'){
       const q = query(collection(db, "dogs"), where("address.city", "==", address.city));
@@ -61,11 +93,17 @@ export default function HomeScreen() {
       querySnapshot.forEach((doc) => {    
         newData.push({...doc.data()});  
       });
-      setDogs([...newData]);
+      let newDataWithDistance = await Promise.all(newData.map(async (dog) => {
+        const distance = await calculateDistance(`${address.street}, ${address.city}`, `${dog.address.street}, ${dog.address.city}`);
+        let strDistance = distance.toFixed(2).toString();
+        return {...dog, distance: strDistance};
+      }
+      ));
+      newDataWithDistance.sort((a, b) => a.distance - b.distance);
+      setDogs([...newDataWithDistance]);
     }
 
-    console.log("Walkers:", walkers);
-    console.log("Dogs:", dogs);
+    setLoaded(true);
   }
 
   useEffect(() => { getUsers();}, [userData]);
@@ -81,7 +119,56 @@ export default function HomeScreen() {
     console.log("Profile Data:", profile);
   }
 
+  // make sure to keep this at the end here
+  useEffect(() => {
+    // Dynamic import based on platform
+    async function loadLottie() {
+      if (Platform.OS === 'web') {
+        const module = await import('lottie-react');
+        setLottieView(() => module.default);
+      } else {
+        const module = await import('lottie-react-native');
+        setLottieView(() => module.default);
+      }
+    }
+    loadLottie();
+  }, []);
+
+
+  if (!LottieView) {
+    return null; // or loading spinner
+  }
+
+  if (!loaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "white"}}>
+    <View style={styles.animationContainer}>
+      {
+        Platform.OS === 'web' ?
+        <LottieView
+          loop={true}
+          animationData={animationData}
+        />
+        :
+      <LottieView
+        autoPlay
+        ref={animation}
+        style={{
+          width: 200,
+          height: 200,
+          backgroundColor: 'white',
+        }}
+        source={require('../../assets/animations/dogAnimation.json')}
+      />
+    }
+    </View>
+  </View>
+    )
+  }
+
+
   return (
+    <>
     <View style={styles.container}>
       <LinearGradient
         colors={['#4A80F0', '#50E3C2']}
@@ -125,12 +212,10 @@ export default function HomeScreen() {
             </>
           )}
         </View>
-      </LinearGradient>
 
+      </LinearGradient>
       <ScrollView style={styles.contentContainer}>
-        {userType === 'walkers' ? (
-          <>
-                      <View style={styles.quickActions}>
+                          <View style={styles.quickActions}>
               <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E3F2FD' }]}>
                 <Text style={[styles.actionText, { color: '#4A80F0' }]}>Available Now</Text>
               </TouchableOpacity>
@@ -141,6 +226,8 @@ export default function HomeScreen() {
                 <Text style={[styles.actionText, { color: '#50E3C2' }]}>Set Radius</Text>
               </TouchableOpacity>
             </View>
+        {userType === 'walkers' ? (
+          <>
             <Text style={styles.sectionTitle}>Dogs Nearby</Text>
               {dogs.map((dog, index) => (
               <TouchableOpacity key={index} style={styles.walkerCard} onPress={() => handleViewProfile(index)}>
@@ -148,14 +235,19 @@ export default function HomeScreen() {
                 <View style={styles.walkerInfo}>
                   <Text style={styles.walkerName}>{dog.name}</Text>
                   <View style={styles.walkerStats}>
-                    <View style={styles.walkerStat}>
+                    {/* <View style={styles.walkerStat}>
                       <Star size={14} color="#FFD700" fill="#FFD700" />
                       <Text style={styles.walkerStatText}>{dog.rating}</Text>
                     </View>
                     <View style={styles.walkerStat}>
                       <Text style={styles.walkerStatText}>{dog.walks} walks</Text>
-                    </View>
+                    </View> */}
+                    <View style={styles.walkerStat}>
+                      <MapPin size={14} color="#4A80F0" />
+                      <Text style={styles.walkerStatText}>{dog.distance} miles</Text>
                   </View>
+                  </View>
+
                 </View>
                 {/* <TouchableOpacity style={styles.contactButton} onPress={() => handleViewProfile(index)}>
                   <Text style={styles.contactButtonText}>View Profile</Text>
@@ -172,13 +264,17 @@ export default function HomeScreen() {
                 <View style={styles.walkerInfo}>
                   <Text style={styles.walkerName}>{walker.name}</Text>
                   <View style={styles.walkerStats}>
-                    <View style={styles.walkerStat}>
+                    {/* <View style={styles.walkerStat}>
                       <Star size={14} color="#FFD700" fill="#FFD700" />
                       <Text style={styles.walkerStatText}>{walker.rating}</Text>
                     </View>
                     <View style={styles.walkerStat}>
                       <Text style={styles.walkerStatText}>{walker.walks} walks</Text>
-                    </View>
+                    </View> */}
+                     <View style={styles.walkerStat}>
+                      <MapPin size={14} color="#4A80F0" />
+                      <Text style={styles.walkerStatText}>{walker.distance} miles</Text>
+                  </View>
                   </View>
                 </View>
                 {/* <TouchableOpacity style={styles.contactButton} onPress={() => handleViewProfile(index)}>
@@ -203,6 +299,7 @@ export default function HomeScreen() {
       </LinearGradient>
     )}
     </View>
+    </>
   );
 }
 
@@ -471,5 +568,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 14,
-  }
+  },
+  animationContainer: {
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  buttonContainer: {
+    paddingTop: 20,
+  },
 });

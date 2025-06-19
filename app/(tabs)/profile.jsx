@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef} from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Switch, TextInput } from 'react-native';
 import { CreditCard as Edit2, LogOut, Clock, DollarSign, Star, MapPin, Bell, Shield, CircleHelp as HelpCircle, ChevronRight, Pencil, Check } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { db, signOutUser } from '../../firebase'; // Adjust the import path as necessary
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { onAuthStateChanged, getAuth } from "firebase/auth";
+import animationData from '../../assets/animations/dogAnimation.json'; // Adjust the import path as necessary
+import { Platform } from 'react-native';
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
 import useUserData from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/hooks/useUserData.js';
 
@@ -19,6 +17,9 @@ export default function ProfileScreen() {
   const [editAddress, setEditAddress] = useState(false);
   const [editName, setEditName] = useState(false);
   const [editContact, setEditContact] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const animation = useRef(null);
+  const [LottieView, setLottieView] = useState(null);
 
   const { 
     userData,
@@ -39,7 +40,11 @@ export default function ProfileScreen() {
     setContact,
   } = useUserData();
 
-  console.log("User Data:", userData);
+  useEffect(() => {
+    if (userData) {
+      setLoaded(true);
+    }
+  }, [userData]);
 
   async function handleBioBlur(){
     setEditBio(false);
@@ -90,6 +95,54 @@ export default function ProfileScreen() {
   //     { icon: <Star size={18} color="#4A80F0" />, value: '4.8', label: 'Rating' },
   //   ],
   // };
+
+    // make sure to keep this at the end here
+    useEffect(() => {
+      // Dynamic import based on platform
+      async function loadLottie() {
+        if (Platform.OS === 'web') {
+          const module = await import('lottie-react');
+          setLottieView(() => module.default);
+        } else {
+          const module = await import('lottie-react-native');
+          setLottieView(() => module.default);
+        }
+      }
+      loadLottie();
+    }, []);
+  
+  
+    if (!LottieView) {
+      return null; // or loading spinner
+    }
+  
+
+   if (!loaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "white"}}>
+    <View style={styles.animationContainer}>
+      {
+        Platform.OS === 'web' ?
+        <LottieView
+          loop={true}
+          animationData={animationData}
+        />
+        :
+      <LottieView
+        autoPlay
+        ref={animation}
+        style={{
+          width: 200,
+          height: 200,
+          backgroundColor: 'white',
+        }}
+        source={require('../../assets/animations/dogAnimation.json')}
+      />
+    }
+    </View>
+  </View>
+    )
+  }
 
   return (
     <View style={styles.container}>

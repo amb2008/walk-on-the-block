@@ -25,8 +25,9 @@ export default function useUserData() {
     state: '',
     zip: '',
   });
-    const [bio, setBio] = useState('Please write your bio!');
-    const [contact, setContact] = useState('Please add your contact info!');
+  const [bio, setBio] = useState('Please write your bio!');
+  const [contact, setContact] = useState('Please add your contact info!');
+  const [userSignedIn, setUserSignedIn] = useState(null);
 
   // Detect auth state
   useFocusEffect(
@@ -115,6 +116,22 @@ export default function useUserData() {
     }
 };
 
+// check if user is signed in
+  useFocusEffect(
+    useCallback(() => {
+    const checkSignedIn = async () => {
+      const user = getAuth().currentUser;
+      if (user) {
+        setUserSignedIn(true);
+      } else {
+        setUserSignedIn(false);
+      }
+    };
+    console.log(userSignedIn);
+    checkSignedIn();
+    }, [])
+  );
+
   // Fetch full user data
   useEffect(() => {
     fetchUser();
@@ -137,6 +154,7 @@ export default function useUserData() {
     address,
     bio,
     contact,
+    userSignedIn,
     setAddress,
     setUserData,
     setUserName,
