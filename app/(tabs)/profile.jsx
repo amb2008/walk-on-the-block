@@ -9,8 +9,10 @@ import animationData from '../../assets/animations/dogAnimation.json'; // Adjust
 import { Platform } from 'react-native';
 import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
 import useUserData from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/hooks/useUserData.js';
+import { pushSignIn } from '../../hooks/pushSignIn.js'; 
 
 export default function ProfileScreen() {
+  pushSignIn();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [editBio, setEditBio] = useState(false);

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Calendar, Clock, MapPin } from 'lucide-react-native';
+import { pushSignIn } from '../../hooks/pushSignIn.js'; 
 
 export default function ScheduleScreen() {
+  pushSignIn();
   const [selectedDate, setSelectedDate] = useState('Today');
   const [selectedFilter, setSelectedFilter] = useState('Upcoming');
 

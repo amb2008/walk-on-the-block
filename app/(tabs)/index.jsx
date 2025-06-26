@@ -1,23 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Clock } from 'lucide-react-native';
 import { db } from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/firebase.js'; // Adjust the import path as necessary
-import useUserData from '/Users/c26ab1/Desktop/Coding/Web Apps + Games/Walk-On-The-Block/hooks/useUserData.js';
-import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where } from "firebase/firestore"; // <-- Add this import
+import useUserData from '../../hooks/useUserData.js';
+import { getFirestore, collection, setDoc, doc, getDoc, getDocs, query, where, arrayUnion, updateDoc } from "firebase/firestore"; // <-- Add this import
 import { calculateDistance } from '../../hooks/distance.js'; // Adjust the import path as necessary
 import animationData from '../../assets/animations/dogAnimation.json'; // Adjust the import path as necessary
-import { useRouter } from "expo-router";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { pushSignIn } from '../../hooks/pushSignIn.js'; // Adjust the import path as necessary
+import { useSharedValue } from 'react-native-reanimated';
+import { Slider } from 'react-native-awesome-slider';
 
 
 export default function HomeScreen() {
+  pushSignIn(); // Ensure user is signed in before loading the screen
+
   const animation = useRef(null);
   const [LottieView, setLottieView] = useState(null);
   const [loaded, setLoaded] = useState(false);
-  const router = useRouter();
+  const [radius, setRadius] = useState(1);
+  const [walkers, setWalkers] = useState([]);
+  const [walkersInRadius, setWalkersInRadius] = useState([]);
+  const [dogsInRadius, setDogsInRadius] = useState([]);
+  const [dogs, setDogs] = useState([]);
+  const [viewProfile, setViewProfile] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const progress = useSharedValue(radius);
+  const min = useSharedValue(0);
+  const max = useSharedValue(1);
 
 
   const { 
@@ -41,26 +53,11 @@ export default function HomeScreen() {
     refreshUserData
   } = useUserData();
 
-  const auth = getAuth();
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      console.log("User is signed in:", user.email);
-    } else {
-      router.push('/signup');
-    }
-  });
-
   useFocusEffect(
     useCallback(() => {
       refreshUserData();
     }, [])
   );
-
-  const [walkers, setWalkers] = useState([]);
-  const [dogs, setDogs] = useState([]);
-  const [viewProfile, setViewProfile] = useState(false);
-  const [profile, setProfile] = useState(null);
 
 
   const getUsers = async () => {
@@ -77,7 +74,9 @@ export default function HomeScreen() {
         newData.push({...doc.data()});
       });
       let newDataWithDistance = await Promise.all(newData.map(async (walker) => {
-        const distance = await calculateDistance(`${address.street}, ${address.city}`, `${walker.address.street}, ${walker.address.city}`);
+        const distance = 0.5
+
+        // const distance = await calculateDistance(`${address.street}, ${address.city}`, `${walker.address.street}, ${walker.address.city}`);
         let strDistance = distance.toFixed(2).toString();
         return {...walker, distance: strDistance};
       }
@@ -94,7 +93,8 @@ export default function HomeScreen() {
         newData.push({...doc.data()});  
       });
       let newDataWithDistance = await Promise.all(newData.map(async (dog) => {
-        const distance = await calculateDistance(`${address.street}, ${address.city}`, `${dog.address.street}, ${dog.address.city}`);
+        const distance = 0.5
+        // const distance = await calculateDistance(`${address.street}, ${address.city}`, `${dog.address.street}, ${dog.address.city}`);
         let strDistance = distance.toFixed(2).toString();
         return {...dog, distance: strDistance};
       }
@@ -103,8 +103,23 @@ export default function HomeScreen() {
       setDogs([...newDataWithDistance]);
     }
 
+    inRadius(radius);
+
     setLoaded(true);
   }
+
+  const inRadius = (radius) => {
+    console.log(dogs, walkers, radius);
+    if (userType === 'dogs') {
+      const filteredWalkers = walkers.filter(walker => parseFloat(walker.distance) <= radius);
+      setWalkersInRadius(filteredWalkers);
+    } else if (userType === 'walkers') {
+      const filteredDogs = dogs.filter(dog => parseFloat(dog.distance) <= radius);
+      setDogsInRadius(filteredDogs);
+    }
+  }
+
+  useEffect(() => {inRadius(radius)}, [dogs, walkers, radius]);
 
   useEffect(() => { getUsers();}, [userData]);
 
@@ -117,6 +132,41 @@ export default function HomeScreen() {
     }
     setViewProfile(true);
     console.log("Profile Data:", profile);
+  }
+
+  async function message(){
+    const messageUser = profile.email
+    let users = [messageUser, userEmail]
+    users.sort()
+    const chatId = users.join("_")
+    // update chats for current user
+    let userRef = doc(db, userType, userEmail);
+    await updateDoc(userRef, {chats: arrayUnion(chatId)})
+    .then(() => { console.log("User bio updated successfully."); })
+    .catch((error) => { console.error("Error updating user bio:", error); });
+
+    // update chats for other user
+    let otherUserType = "walkers"
+    if (userType == "walkers"){
+      otherUserType = "dogs"
+    }
+    userRef = doc(db, otherUserType, messageUser);
+    await updateDoc(userRef, {chats: arrayUnion(chatId)})
+    .then(() => { console.log("User bio updated successfully."); })
+    .catch((error) => { console.error("Error updating user bio:", error); });
+
+    // update chats collection
+    const chatsRef = doc(db, "chats", chatId)
+    const chatData = { 
+      display: {[userEmail]: {image: profile.image, name: profile.name},
+                [messageUser]: {image: userImage, name: userName}
+      },
+      lastMessage: "Start chatting!",
+      messages: []
+    }
+    await setDoc(chatsRef, chatData)    
+    .then(() => { console.log("Chat data updated successfully."); })
+    .catch((error) => { console.error("Error updating user bio:", error); });
   }
 
   // make sure to keep this at the end here
@@ -215,21 +265,37 @@ export default function HomeScreen() {
 
       </LinearGradient>
       <ScrollView style={styles.contentContainer}>
-                          <View style={styles.quickActions}>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E3F2FD' }]}>
-                <Text style={[styles.actionText, { color: '#4A80F0' }]}>Available Now</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#FFF3E0' }]}>
-                <Text style={[styles.actionText, { color: '#FF9557' }]}>Weekend Only</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E8F5E9' }]}>
-                <Text style={[styles.actionText, { color: '#50E3C2' }]}>Set Radius</Text>
-              </TouchableOpacity>
+          <View style={styles.quickActions}>
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E3F2FD' }]}>
+              <Text style={[styles.actionText, { color: '#4A80F0' }]}>Available Now</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#FFF3E0' }]}>
+              <Text style={[styles.actionText, { color: '#FF9557' }]}>Weekend Only</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.actionButton, { backgroundColor: '#E8F5E9', flexDirection: 'column', justifyContent: 'center' }]}>
+              <Text style={[styles.actionText, { color: '#50E3C2', marginBottom: 4 }]}>Radius: {radius} miles</Text>
+              {/* <View style={styles.slider}>
+                <Slider
+                  progress={progress}
+                  minimumValue={min}
+                  maximumValue={max}
+                  bubbleContainerStyle={{scale: 0}}
+                  bubbleOffsetX={50}
+                  onValueChange={(value) => {
+                    setRadius(value.toFixed(2));
+                  }}
+
+                />
+              </View> */}
             </View>
+          </View>
+
         {userType === 'walkers' ? (
           <>
             <Text style={styles.sectionTitle}>Dogs Nearby</Text>
-              {dogs.map((dog, index) => (
+              {dogsInRadius.map((dog, index) => (
               <TouchableOpacity key={index} style={styles.walkerCard} onPress={() => handleViewProfile(index)}>
                 <Image source={{ uri: dog.image }} style={styles.walkerImage} />
                 <View style={styles.walkerInfo}>
@@ -258,7 +324,7 @@ export default function HomeScreen() {
         ) : (
           <>
             <Text style={styles.sectionTitle}>Walkers In Your Area</Text>
-            {walkers.map((walker, index) => (
+            {walkersInRadius.map((walker, index) => (
               <TouchableOpacity key={index} style={styles.walkerCard} onPress={() => handleViewProfile(index)}>
                 <Image source={{ uri: walker.image }} style={styles.walkerImage} />
                 <View style={styles.walkerInfo}>
@@ -293,9 +359,15 @@ export default function HomeScreen() {
         <Text style={styles.profileName}>{profile.name}</Text>
         <Text style={styles.profileBio}>{profile.bio}</Text>
         <Text style={styles.profileBio}>Contact: {profile.contact}</Text>
-        <TouchableOpacity onPress={() => setViewProfile(false)} style={styles.toggleButton}>
-          <Text style={styles.toggleButtonText}>Close Profile</Text>
-        </TouchableOpacity>
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity onPress={() => setViewProfile(false)} style={styles.toggleButton}>
+            <Text style={styles.toggleButtonText}>Close Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.toggleButton} onPress={()=>message()}>
+            <Text style={styles.toggleButtonText}>Message</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
     )}
     </View>
@@ -493,6 +565,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   toggleButton: {
+    marginHorizontal: 10,
     marginTop: 30,
     marginBottom: 20,
     padding: 12,
@@ -578,4 +651,17 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingTop: 20,
   },
+  slider: {
+    width: '100%',
+    height: 40,
+    justifyContent: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+    width: '100%',
+  },
+
+
 });

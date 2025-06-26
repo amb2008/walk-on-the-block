@@ -56,6 +56,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="signup"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

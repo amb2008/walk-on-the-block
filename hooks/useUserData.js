@@ -15,6 +15,7 @@ export default function useUserData() {
   const [userType, setUserType] = useState(null);
   const [userData, setUserData] = useState(null);
   const [userName, setUserName] = useState(null);
+  const [chats, setChats] = useState([]);
     const [userImage, setUserImage] = useState(null);
     const [userRating, setUserRating] = useState(0);
     const [userWalks, setUserWalks] = useState(0);
@@ -108,6 +109,7 @@ export default function useUserData() {
             state: data.address?.state || '',
             zip: data.address?.zip || '',
         });
+        setChats(data.chats || []);
     } else {
         console.log('No such user document.');
     }
@@ -155,6 +157,7 @@ export default function useUserData() {
     bio,
     contact,
     userSignedIn,
+    chats,
     setAddress,
     setUserData,
     setUserName,

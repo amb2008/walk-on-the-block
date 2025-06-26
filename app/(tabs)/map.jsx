@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { MapPin, FileSliders as Sliders, Search } from 'lucide-react-native';
-
-const { width } = Dimensions.get('window');
+import { pushSignIn } from '../../hooks/pushSignIn.js';
 
 export default function MapScreen() {
+  pushSignIn();
   const [selectedDog, setSelectedDog] = useState(null);
   
   // Simulated data - in a real app, this would be replaced with actual map markers

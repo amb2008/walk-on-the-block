@@ -1,7 +1,18 @@
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 
 export default function NotFoundScreen() {
+  const router = useRouter();
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      router.push('/');
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, [router]);
+
+
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
